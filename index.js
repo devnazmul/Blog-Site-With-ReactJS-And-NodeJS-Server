@@ -21,7 +21,7 @@ async function run() {
         const postCollection = database.collection('post_collection');
         const commentCollection = database.collection('comment_collection');
 
-        // load posts on UI with GET
+        // load articles on UI with GET
         app.get('/posts', async (req, res) => {
             const cursor = postCollection.find({});
             const posts = await cursor.toArray();
@@ -46,6 +46,24 @@ async function run() {
             const result = await commentCollection.insertOne(comment);
             res.json(result)
         });
+        // Make an admin API
+        app.put('/users/admin', async (req, res) => {
+            const admin = req.body;
+            console.log('put', admin);
+            const filter = { email: admin.email };
+            const updateDoc = { $set: { role: 'admin' } };
+            const result = await userCollection.updateOne(filter, updateDoc);
+            res.json(result);
+        })
+
+        // Sending like to an article with UPDTAE API
+        app.put('/posts/:id', async (req, res) => {
+            const like = req.body;
+            const updateDoc = { $set: { isLiked: 'liked' } };
+            const result = await postCollection.updateOne(updateDoc);
+            res.json(result);
+
+        })
 
     }
     finally {
