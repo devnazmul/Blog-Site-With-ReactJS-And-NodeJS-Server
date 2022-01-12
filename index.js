@@ -48,6 +48,7 @@ const run = async () => {
       });
     });
 
+
     // ########### GET OPERATION FOR USERS ##############
     app.get("/users", async (req, res) => {
       const cursor = usersCollection.find({});
@@ -62,7 +63,7 @@ const run = async () => {
     app.get("/posts/:email", async (req, res) => {
       const email = req.params.email;
       const cursor = postsCollection.find({
-        email:email
+        email: email
       });
       const posts = await cursor.toArray();
       res.send({
