@@ -128,7 +128,6 @@ const run = async () => {
       res.send(insertResult);
     });
 
-
     // ############ CREATE OPERATION FOR POST ###########
     app.post("/post", async (req, res) => {
       const data = req.body;
