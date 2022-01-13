@@ -132,6 +132,7 @@ const run = async () => {
     app.post("/post", async (req, res) => {
       const data = req.body;
       data.likes = parseInt(data.likes)
+      data.likedUEmail = [];
       const insertResult = await postsCollection.insertOne(data);
       res.send(insertResult);
     });
