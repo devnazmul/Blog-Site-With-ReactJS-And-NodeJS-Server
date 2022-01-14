@@ -62,7 +62,7 @@ const run = async () => {
     app.get("/posts/:email", async (req, res) => {
       const email = req.params.email;
       const cursor = postsCollection.find({
-        email:email
+        email: email
       });
       const posts = await cursor.toArray();
       res.send({
@@ -139,12 +139,25 @@ const run = async () => {
 
     // ############ CREATE OPERATION FOR COMMENT ###########
     app.post("/comment", async (req, res) => {
+
       const data = req.body;
       const id = ObjectId();
       data._id = id;
       data.parentId = ''
       data.postId = ObjectId(data.postId)
-      data.timestamp = moment(new Date).format('DD/MM/YYYY, h:mm:ss a');
+      const query2 = { _id: data.postId };
+
+      let postComments = parseInt(data.postComments) + 1;
+
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          postComments: postComments,
+        },
+      };
+
+      const posts = await postsCollection.updateOne(query2, updateDoc, options);
+
       const insertResult = await commentsCollection.insertOne(data);
       res.send(insertResult);
     });
@@ -238,11 +251,28 @@ const run = async () => {
 
     // ######## DELETE OPERATION FOR COMMENT ########
     app.delete("/comment/:_id", async (req, res) => {
-      const id = req.params._id;
-      const query = { _id: ObjectId(id) };
-      const newComment = commentsCollection.deleteOne(query);
+      const id = req.params._id.split('*')[0];
+      let postId = req.params._id.split('*')[1];
+      let postComments = req.params._id.split('*')[2];
+      const queryForComment = { _id: ObjectId(id) };
+      const newComment = await commentsCollection.deleteOne(queryForComment);
       res.send(newComment);
+      if (newComment.deletedCount) {
+        postId = ObjectId(postId)
+        const query2 = { _id: postId };
+        postComments = parseInt(postComments) - 1;
+        const options = { upsert: true };
+        const updateDoc = {
+          $set: {
+            postComments: postComments,
+          },
+        };
+        await postsCollection.updateOne(query2, updateDoc, options);
+        res.send(newComment);
+      }
+
     });
+
     // ######## DELETE OPERATION FOR POST ########
     app.delete("/post/:_id", async (req, res) => {
       const id = req.params._id;
