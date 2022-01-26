@@ -19,16 +19,13 @@ const client = new MongoClient(uri, {
 const PORT = process.env.PORT || 5000;
 
 const run = async () => {
-
   try {
-
     await client.connect();
     console.log("mongoDB connected...");
     const db = client.db("Blog-Site-By-React");
     const postsCollection = db.collection("posts");
     const usersCollection = db.collection("users");
     const commentsCollection = db.collection("comments");
-
 
     // ############## TESTING LIVE SERVER ###############
     app.get("/", (req, res) => {
@@ -39,7 +36,7 @@ const run = async () => {
     app.get("/posts/:email", async (req, res) => {
       const userEmail = req.params.email;
       const cursor = postsCollection.find({
-        email: userEmail
+        email: userEmail,
       });
       const posts = await cursor.toArray();
       res.send({
@@ -62,7 +59,7 @@ const run = async () => {
     app.get("/posts/:email", async (req, res) => {
       const email = req.params.email;
       const cursor = postsCollection.find({
-        email: email
+        email: email,
       });
       const posts = await cursor.toArray();
       res.send({
@@ -104,8 +101,8 @@ const run = async () => {
       const query = { email: email };
       const users = await usersCollection.findOne(query);
       let isAdmin = false;
-      if (users?.role === 'admin') {
-        isAdmin = true
+      if (users?.role === "admin") {
+        isAdmin = true;
       }
       res.json({ admin: isAdmin });
     });
@@ -117,7 +114,7 @@ const run = async () => {
       res.send({
         countData: cursor.count(),
         comments,
-      })
+      });
     });
 
     // ############## CREATE OPERATION FOR USERS #########
@@ -127,11 +124,10 @@ const run = async () => {
       res.send(insertResult);
     });
 
-
     // ############ CREATE OPERATION FOR POST ###########
     app.post("/post", async (req, res) => {
       const data = req.body;
-      data.likes = parseInt(data.likes)
+      data.likes = parseInt(data.likes);
       data.likedUEmail = [];
       const insertResult = await postsCollection.insertOne(data);
       res.send(insertResult);
@@ -139,29 +135,27 @@ const run = async () => {
 
     // ############ CREATE OPERATION FOR COMMENT ###########
     app.post("/comment", async (req, res) => {
-
       const data = req.body;
       const id = ObjectId();
       data._id = id;
-      data.parentId = ''
-      data.postId = ObjectId(data.postId)
+      if (data.parentId !== null) {
+        data.parentId = ObjectId(data.parentId);
+      } else {
+        data.parentId = null;
+      }
+      data.postId = ObjectId(data.postId);
       const query2 = { _id: data.postId };
-
       let postComments = parseInt(data.postComments) + 1;
-
       const options = { upsert: true };
       const updateDoc = {
         $set: {
           postComments: postComments,
         },
       };
-
       const posts = await postsCollection.updateOne(query2, updateDoc, options);
-
       const insertResult = await commentsCollection.insertOne(data);
       res.send(insertResult);
     });
-
 
     // ############## PUT OR UPDATE FOR USERS ############
     app.put("/users", async (req, res) => {
@@ -180,15 +174,10 @@ const run = async () => {
     app.put("/user/admin", async (req, res) => {
       const email = req.body.email;
       const filter = { email: email };
-      const updateDoc = { $set: { role: 'admin' } };
-      const result = await usersCollection.updateOne(
-        filter,
-        updateDoc
-      );
+      const updateDoc = { $set: { role: "admin" } };
+      const result = await usersCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
-
-
 
     // ############# UPDATE ORDER STATUS DONE #################
     app.put("/postLike/:id", async (req, res) => {
@@ -202,63 +191,73 @@ const run = async () => {
       const query1 = { _id: ObjectId(id), likedUEmail: { $in: [data2] } };
       const query2 = { _id: ObjectId(id) };
 
-      const ress = await postsCollection.findOne(query1)
-
+      const ress = await postsCollection.findOne(query1);
 
       const options = { upsert: true };
       if (ress !== null) {
-
         let updatedLikedUEmail = ress.likedUEmail;
-        updatedLikedUEmail = updatedLikedUEmail.filter(element => element !== data2);
+        updatedLikedUEmail = updatedLikedUEmail.filter(
+          (element) => element !== data2
+        );
 
         const updateDoc = {
           $set: {
             likedUEmail: updatedLikedUEmail,
-            likes: dicreaseLike
+            likes: dicreaseLike,
           },
         };
-        const posts = await postsCollection.updateOne(query2, updateDoc, options);
+        const posts = await postsCollection.updateOne(
+          query2,
+          updateDoc,
+          options
+        );
         res.send(posts);
       } else {
-
         if (data.likedUEmail === undefined) {
           data.likedUEmail = [];
           data.likedUEmail.push(data2);
           const updateDoc = {
             $set: {
               likedUEmail: data.likedUEmail,
-              likes: increaseLike
+              likes: increaseLike,
             },
           };
 
-          const posts = await postsCollection.updateOne(query2, updateDoc, options);
+          const posts = await postsCollection.updateOne(
+            query2,
+            updateDoc,
+            options
+          );
           res.send(posts);
         } else {
           data.likedUEmail.push(data2);
           const updateDoc = {
             $set: {
               likedUEmail: data.likedUEmail,
-              likes: increaseLike
+              likes: increaseLike,
             },
           };
 
-          const posts = await postsCollection.updateOne(query2, updateDoc, options);
+          const posts = await postsCollection.updateOne(
+            query2,
+            updateDoc,
+            options
+          );
           res.send(posts);
         }
       }
     });
 
-
     // ######## DELETE OPERATION FOR COMMENT ########
     app.delete("/comment/:_id", async (req, res) => {
-      const id = req.params._id.split('*')[0];
-      let postId = req.params._id.split('*')[1];
-      let postComments = req.params._id.split('*')[2];
+      const id = req.params._id.split("*")[0];
+      let postId = req.params._id.split("*")[1];
+      let postComments = req.params._id.split("*")[2];
       const queryForComment = { _id: ObjectId(id) };
       const newComment = await commentsCollection.deleteOne(queryForComment);
       res.send(newComment);
       if (newComment.deletedCount) {
-        postId = ObjectId(postId)
+        postId = ObjectId(postId);
         const query2 = { _id: postId };
         postComments = parseInt(postComments) - 1;
         const options = { upsert: true };
@@ -270,7 +269,6 @@ const run = async () => {
         await postsCollection.updateOne(query2, updateDoc, options);
         res.send(newComment);
       }
-
     });
 
     // ######## DELETE OPERATION FOR POST ########
@@ -280,8 +278,6 @@ const run = async () => {
       const newPost = postsCollection.deleteOne(query);
       res.send(newPost);
     });
-
-
   } finally {
     // await client.close();
   }
