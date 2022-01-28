@@ -136,15 +136,20 @@ const run = async () => {
     // ############ CREATE OPERATION FOR COMMENT ###########
     app.post("/comment", async (req, res) => {
       const data = req.body;
-      const id = ObjectId();
+      const id = ObjectId();                
       data._id = id;
+      console.log(data);
       if (data.parentId !== null) {
         data.parentId = ObjectId(data.parentId);
       } else {
         data.parentId = null;
       }
+
       data.postId = ObjectId(data.postId);
+
       const query2 = { _id: data.postId };
+
+
       let postComments = parseInt(data.postComments) + 1;
       const options = { upsert: true };
       const updateDoc = {
@@ -248,35 +253,36 @@ const run = async () => {
       }
     });
 
-    // ######## DELETE OPERATION FOR COMMENT ########
+    // ######## DELETE OPERATION FOR POST ########
     app.delete("/comment/:_id", async (req, res) => {
-      const id = req.params._id.split("*")[0];
-      let postId = req.params._id.split("*")[1];
-      let postComments = req.params._id.split("*")[2];
-      const queryForComment = { _id: ObjectId(id) };
-      const newComment = await commentsCollection.deleteOne(queryForComment);
-      res.send(newComment);
-      if (newComment.deletedCount) {
-        postId = ObjectId(postId);
-        const query2 = { _id: postId };
-        postComments = parseInt(postComments) - 1;
+      const data= req.params._id;
+      const splitData = data.split('_');
+      const commentId = splitData[0];
+      const postId = splitData[1];
+      let postComments = parseInt(splitData[2]);
+      // console.log(data);
+      const updatedComments = postComments - 1;
+
+      const queryComment = { _id: ObjectId(commentId) };
+      const queryPost = { _id: ObjectId(postId) };
+      const newComment = await commentsCollection.deleteOne(queryComment);
+      
+
+      if (newComment.deletedCount === 1) {
         const options = { upsert: true };
         const updateDoc = {
           $set: {
-            postComments: postComments,
+            postComments : updatedComments
           },
         };
-        await postsCollection.updateOne(query2, updateDoc, options);
-        res.send(newComment);
+        const posts = await postsCollection.updateOne(
+          queryPost,
+          updateDoc,
+          options
+        );
+        res.send(posts);
       }
-    });
 
-    // ######## DELETE OPERATION FOR POST ########
-    app.delete("/post/:_id", async (req, res) => {
-      const id = req.params._id;
-      const query = { _id: ObjectId(id) };
-      const newPost = postsCollection.deleteOne(query);
-      res.send(newPost);
     });
   } finally {
     // await client.close();
